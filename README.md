@@ -50,6 +50,14 @@ PORT=3306
 DATABASE=HABIT_TRACKER
 ```
 
+Create the tables with the schema in `schema.sql`:
+
+```
+mysql -u root -p HABIT_TRACKER < schema.sql
+```
+
+If you already have a database from an earlier version, run the migration statements at the bottom of `schema.sql` once instead (back up first). They merge duplicate entries per habit and day and add the unique key the app now relies on.
+
 ### Running the App
 
 - In a terminal window, in the root folder (same folder as `main.go`) run `wails serve` to start the backend.

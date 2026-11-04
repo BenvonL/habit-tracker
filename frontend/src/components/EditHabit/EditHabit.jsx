@@ -14,12 +14,16 @@ const EditHabit = ({
   const [tempHabit, setTempHabit] = useState(habit);
   const history = useHistory();
 
-  const deleteHabit = () => {
-    window.backend.MySQLRepository.DeleteHabit(habit.id).catch((err) =>
-      console.error(err)
-    );
-    updateHabits();
-    history.push("/");
+  const deleteHabit = (e) => {
+    e.preventDefault();
+    window.backend.MySQLRepository.DeleteHabit(habit.id)
+      .then(() => {
+        // reload only after the delete is done, otherwise the list may
+        // still contain the deleted habit
+        updateHabits();
+        history.push("/");
+      })
+      .catch((err) => console.error(err));
   };
 
   const EditHabit = () => {

@@ -1,27 +1,30 @@
-import React from "react";
-import "./AddActivity.scss";
-
+import React, { useState } from "react";
+import { toLocalISODate } from "../../date.js";
 import close from "../../assets/icons/remove.svg";
 import "./AddActivity.scss";
 
 const AddActivity = ({ habit_id, unit, setAddOpen, getDates }) => {
+  const [error, setError] = useState("");
+
   const incrementCount = (e) => {
     e.preventDefault();
-    let today = new Date().toISOString().slice(0, 10);
+    const count = Number(e.target.count.value);
+    if (!Number.isInteger(count) || count < 1) {
+      setError("Please enter a whole number of at least 1.");
+      return;
+    }
     window.backend
-      .NewDate(today, Number(e.target.count.value), habit_id)
-      .then((response) => {
-        console.log(response);
-        window.backend.MySQLRepository.AddCountFromJSON(
-          JSON.stringify(response)
-        )
-          .then(() => {
-            getDates();
-            setAddOpen(false);
-          })
-          .catch((err) => {
-            console.error(err);
-          });
+      .NewDate(toLocalISODate(), count, habit_id)
+      .then((date) =>
+        window.backend.MySQLRepository.AddCountFromJSON(JSON.stringify(date))
+      )
+      .then(() => {
+        getDates();
+        setAddOpen(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError(`Could not save: ${err}`);
       });
   };
 
@@ -44,7 +47,11 @@ const AddActivity = ({ habit_id, unit, setAddOpen, getDates }) => {
           id="count"
           name="count"
           min="1"
+          step="1"
+          required
+          onChange={() => setError("")}
         />
+        {error && <p className="form__error">{error}</p>}
         <div className="form__btn-container">
           <button className="form__btn" type="submit">
             submit
