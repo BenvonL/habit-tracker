@@ -27,8 +27,9 @@ I hope that this tool can help those who struggle with being consistent or disci
 
 - [Wails](https://wails.app/gettingstarted/) and its dependencies
   - Please follow their 'Getting Started' guide to install all project dependencies
+- Go 1.17 or newer
 - Dependencies listed in `go.mod`
-  - install these dependencies by running `go get` in the backend/root directory (same level as main.go)
+  - install these dependencies by running `go mod download` in the backend/root directory (same level as main.go)
 - Since auth isn't set up yet, you will need a `.env` file with the following values:
 
 ```
@@ -63,6 +64,36 @@ If you already have a database from an earlier version, run the migration statem
 - In a terminal window, in the root folder (same folder as `main.go`) run `wails serve` to start the backend.
 - In a new terminal window, navigate to the frontend folder, then run `npm run serve` to start the frontend.
   This runs the development server for the desktop application on `http://localhost:3000`
+
+## Running the Tests
+
+### Backend
+
+The repository tests in `habit_repository_test.go` and `date_repository_test.go` use [go-sqlmock](https://github.com/DATA-DOG/go-sqlmock), so they need neither a MySQL database nor a `.env` file. From the root folder run:
+
+```
+go test ./...
+```
+
+To see which statements are covered, run `go test -cover ./...`.
+
+The tests live in package `main`, which imports Wails, so the Wails system dependencies have to be installed to compile them (the same ones you need for `wails serve`). On macOS that is the Xcode command line tools. On Debian/Ubuntu it is `libgtk-3-dev` and `libwebkit2gtk-4.0-dev`.
+
+What the tests cover:
+
+- every method of `HabitRepository` and `DateRepository`, including the error paths and invalid JSON input
+- user input is passed to MySQL as query parameters, never pasted into the SQL string
+- `AddCount` adds to an existing day in a single upsert statement, and rejects entries without a habit, with a count of 0 or with a date that is not `YYYY-MM-DD`
+- "today" in `GetTodaysCountForHabit` is the local calendar day, not the UTC day
+- an empty result is returned as `[]`, not `null`, so the frontend always gets a list
+
+When you add a repository method, add a test next to the others and keep the expected SQL in the constants at the top of the test file in sync.
+
+### Frontend
+
+From the `frontend` folder run `npm test`. This starts Jest in watch mode; use `CI=true npm test` for a single run.
+
+Note: `src/setupTests.js` and `src/App.test.js` import `@testing-library/jest-dom` and `@testing-library/react`, which are not in `package.json` yet. Until they are added, install them once with `npm i -D @testing-library/react@12 @testing-library/jest-dom@5`. `App.test.js` is still the Create React App placeholder and is expected to fail.
 
 ## How to Contribute
 
