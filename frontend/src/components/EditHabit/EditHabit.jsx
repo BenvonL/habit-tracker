@@ -14,12 +14,16 @@ const EditHabit = ({
   const [tempHabit, setTempHabit] = useState(habit);
   const history = useHistory();
 
-  const deleteHabit = () => {
-    window.backend.MySQLRepository.DeleteHabit(habit.id).catch((err) =>
-      console.error(err)
-    );
-    updateHabits();
-    history.push("/");
+  const deleteHabit = (e) => {
+    e.preventDefault();
+    window.backend.MySQLRepository.DeleteHabit(habit.id)
+      .then(() => {
+        // reload only after the delete is done, otherwise the list may
+        // still contain the deleted habit
+        updateHabits();
+        history.push("/");
+      })
+      .catch((err) => console.error(err));
   };
 
   const EditHabit = () => {
@@ -47,11 +51,9 @@ const EditHabit = ({
         onSubmit={(e) => {
           e.preventDefault();
           EditHabit();
-          setHabit({
-            name: tempHabit.name,
-            unit: tempHabit.unit,
-            why: tempHabit.why,
-          });
+          // keep id and pomodoro, otherwise logging activity after an
+          // edit has no habit id and cannot be saved
+          setHabit({ ...habit, ...tempHabit });
         }}
       >
         <h1 className="form__title">Edit Habit</h1>

@@ -6,9 +6,10 @@ import add from "../../assets/icons/btn--add.png";
 import AddActivity from "../../components/AddActivity";
 import EditHabit from "../../components/EditHabit";
 import Pomodoro from "../../components/Pomodoro";
+import { toLocalISODate, shiftDate, countToLevel } from "../../date.js";
 import "./Habit.scss";
 
-const today = new Date().toISOString().substring(0, 10);
+const DAYS_SHOWN = 364;
 
 const Habit = ({ habitList, updateHabits }) => {
   const url = window.location.pathname.split("/").pop();
@@ -17,18 +18,25 @@ const Habit = ({ habitList, updateHabits }) => {
   const [habit, setHabit] = useState({});
   const [dates, setDates] = useState([]);
 
-  const defaultValues = getRange(364).map((index) => {
-    return {
-      date: shiftDate(today, -index),
-      count: 0,
-    };
-  });
+  const today = toLocalISODate();
+  const maxCount = Math.max(0, ...dates.map((d) => d.count));
 
   const getDates = () => {
-    window.backend.MySQLRepository.GetAllDates(habit.id).then((response) => {
-      Array.prototype.push.apply(defaultValues, response);
-      setDates(defaultValues);
-    });
+    window.backend.MySQLRepository.GetAllDates(habit.id)
+      .then((response) => {
+        // one value per day: start with 0 for every shown day, then
+        // overwrite with what is stored in the database
+        const countByDate = new Map(
+          getRange(DAYS_SHOWN).map((index) => [shiftDate(today, -index), 0])
+        );
+        (response || []).forEach((entry) => {
+          countByDate.set(entry.date, entry.count);
+        });
+        setDates(
+          Array.from(countByDate, ([date, count]) => ({ date, count }))
+        );
+      })
+      .catch((err) => console.error(err));
   };
 
   useEffect(() => {
@@ -107,16 +115,19 @@ const Habit = ({ habitList, updateHabits }) => {
           </div>
           {dates && (
             <CalendarHeatmap
-              startDate={shiftDate(today, -363)}
+              startDate={shiftDate(today, -(DAYS_SHOWN - 1))}
               endDate={today}
               values={dates}
               classForValue={(value) => {
                 if (!value) {
                   return "color-empty";
                 }
-                return `color-github-${value.count}`;
+                return `color-github-${countToLevel(value.count, maxCount)}`;
               }}
               tooltipDataAttrs={(value) => {
+                if (!value || !value.date) {
+                  return {};
+                }
                 return {
                   "data-tip": `${value.date}: ${value.count} ${habit.unit}`,
                 };
@@ -137,12 +148,6 @@ const Habit = ({ habitList, updateHabits }) => {
 /* ********
  * helpers
  * ********/
-
-function shiftDate(date, numDays) {
-  const newDate = new Date(date);
-  newDate.setDate(newDate.getDate() + numDays);
-  return newDate.toISOString().substring(0, 10);
-}
 
 function getRange(count) {
   return Array.from({ length: count }, (_, i) => i);
