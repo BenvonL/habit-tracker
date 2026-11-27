@@ -51,11 +51,9 @@ const EditHabit = ({
         onSubmit={(e) => {
           e.preventDefault();
           EditHabit();
-          setHabit({
-            name: tempHabit.name,
-            unit: tempHabit.unit,
-            why: tempHabit.why,
-          });
+          // keep id and pomodoro, otherwise logging activity after an
+          // edit has no habit id and cannot be saved
+          setHabit({ ...habit, ...tempHabit });
         }}
       >
         <h1 className="form__title">Edit Habit</h1>
